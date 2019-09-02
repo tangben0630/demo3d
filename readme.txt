@@ -1,1 +1,2 @@
-123456
+cd demo3d 
+node app.js
