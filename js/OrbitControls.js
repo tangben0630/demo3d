@@ -14,10 +14,11 @@
 //    Pan - right mouse, or arrow keys / touch: two-finger move
 
 
+let isPhone = /Android|webOS|iPhone|iPod|BlackBerry/i.test(navigator.userAgent)
 
 THREE.OrbitControls = function ( object, domElement ) {
 	// object：指定相机对象，比如多个相机对象(场景相机对象、UI相机对象)，只有一个起作用
-		this.index = 0
+	
 		this.object = object;
 		// domElement:指定鼠标事件起作用的范围，默认是整个document，所有html元素
 		// 比如3D建模软件，可以把范围指定为renderer.domElement，渲染器引用render的domElement属性引用指向绘图区canvas
@@ -81,13 +82,13 @@ THREE.OrbitControls = function ( object, domElement ) {
 		// Set to false to disable rotating
 		//设置为false以禁用旋转
 		this.enableRotate = true;
-		this.rotateSpeed = 0.25;
+		this.rotateSpeed = isPhone ? 0.5 : 0.25;
 	
 		// Set to false to disable panning平移
 		this.enablePan = true;
-		this.panSpeed = 0.8;
+		this.panSpeed = isPhone ? 1.8 : 0.8;
 		// 如果为true，则在屏幕空间中平移
-		this.screenSpacePanning = true; // if true, pan in screen-space
+		this.screenSpacePanning = false; // if true, pan in screen-space
 		this.keyPanSpeed = 7.0;	// pixels moved per arrow key push 像素按箭头键移动
 	
 		// Set to true to automatically rotate around the target
@@ -415,35 +416,28 @@ THREE.OrbitControls = function ( object, domElement ) {
 		}();
 	
 		function dollyIn( dollyScale ) {
-			
-			if (scope.index < -15) { 
-				scope.index = -16
+	
+			if ( scope.object.isPerspectiveCamera ) {
+	
+				scale /= dollyScale;
+	
+			} else if ( scope.object.isOrthographicCamera ) {
+	
+				scope.object.zoom = Math.max( scope.minZoom, Math.min( scope.maxZoom, scope.object.zoom * dollyScale ) );
+				scope.object.updateProjectionMatrix();
+				zoomChanged = true;
+	
 			} else {
-				scope.index-- 
-				
-				if ( scope.object.isPerspectiveCamera ) {
-		
-					scale /= dollyScale;
-		
-				} else if ( scope.object.isOrthographicCamera ) {
-		
-					scope.object.zoom = Math.max( scope.minZoom, Math.min( scope.maxZoom, scope.object.zoom * dollyScale ) );
-					scope.object.updateProjectionMatrix();
-					zoomChanged = true;
-		
-				} else {
-		
-					console.warn( 'WARNING: OrbitControls.js encountered an unknown camera type - dolly/zoom disabled.' );
-					scope.enableZoom = false;
-		
-				}
-				
+	
+				console.warn( 'WARNING: OrbitControls.js encountered an unknown camera type - dolly/zoom disabled.' );
+				scope.enableZoom = false;
+	
 			}
 	
 		}
 	
 		function dollyOut( dollyScale ) {
-			scope.index ++
+	
 			if ( scope.object.isPerspectiveCamera ) {
 	
 				scale *= dollyScale;
@@ -607,18 +601,30 @@ THREE.OrbitControls = function ( object, domElement ) {
 	
 		}
 	
-		function handleTouchStartRotate( event ) {
+		// function handleTouchStartRotate( event ) {
 	
-			//console.log( 'handleTouchStartRotate' );
+		// 	//console.log( 'handleTouchStartRotate' );
 	
-			rotateStart.set( event.touches[ 0 ].pageX, event.touches[ 0 ].pageY );
+		// 	rotateStart.set( event.touches[ 0 ].pageX, event.touches[ 0 ].pageY );
 	
+		// }
+
+		function bbb(event){
+			if ( scope.enablePan ) {
+				
+				var x = 0.5 * ( event.touches[ 0 ].pageX );
+				var y = 0.5 * ( event.touches[ 0 ].pageY );
+				
+				panStart.set( x, y );
+				
+	
+			}
 		}
-	
+		
 		function handleTouchStartDollyPan( event ) {
 	
 			//console.log( 'handleTouchStartDollyPan' );
-	
+			
 			if ( scope.enableZoom ) {
 	
 				var dx = event.touches[ 0 ].pageX - event.touches[ 1 ].pageX;
@@ -631,11 +637,13 @@ THREE.OrbitControls = function ( object, domElement ) {
 			}
 	
 			if ( scope.enablePan ) {
-	
+
+				
 				var x = 0.5 * ( event.touches[ 0 ].pageX + event.touches[ 1 ].pageX );
 				var y = 0.5 * ( event.touches[ 0 ].pageY + event.touches[ 1 ].pageY );
-	
-				panStart.set( x, y );
+				
+				rotateStart.set( event.touches[ 0 ].pageX, event.touches[ 0 ].pageY );
+				// panStart.set( x, y );
 	
 			}
 	
@@ -659,10 +667,28 @@ THREE.OrbitControls = function ( object, domElement ) {
 	
 			rotateStart.copy( rotateEnd );
 	
-			scope.update();
+			// scope.update();
 	
 		}
+		function aaa(event){
+			
+			
+			if ( scope.enablePan ) {
 	
+				var x = 0.5 * ( event.touches[ 0 ].pageX );
+				var y = 0.5 * ( event.touches[ 0 ].pageY );
+				panEnd.set( x, y );
+	
+				panDelta.subVectors( panEnd, panStart ).multiplyScalar( scope.panSpeed );
+	
+				pan( panDelta.x, panDelta.y );
+	
+				panStart.copy( panEnd );
+	
+			}
+	
+			scope.update();
+		}
 		function handleTouchMoveDollyPan( event ) {
 	
 			//console.log( 'handleTouchMoveDollyPan' );
@@ -684,18 +710,8 @@ THREE.OrbitControls = function ( object, domElement ) {
 	
 			}
 	
-			if ( scope.enablePan ) {
-	
-				var x = 0.5 * ( event.touches[ 0 ].pageX + event.touches[ 1 ].pageX );
-				var y = 0.5 * ( event.touches[ 0 ].pageY + event.touches[ 1 ].pageY );
-	
-				panEnd.set( x, y );
-	
-				panDelta.subVectors( panEnd, panStart ).multiplyScalar( scope.panSpeed );
-	
-				pan( panDelta.x, panDelta.y );
-	
-				panStart.copy( panEnd );
+			if ( scope.enableRotate ) {
+				handleTouchMoveRotate(event)
 	
 			}
 	
@@ -816,7 +832,7 @@ THREE.OrbitControls = function ( object, domElement ) {
 		}
 	
 		function onMouseWheel( event ) {
-			
+	
 			if ( scope.enabled === false || scope.enableZoom === false || ( state !== STATE.NONE && state !== STATE.ROTATE ) ) return;
 	
 			event.preventDefault();
@@ -839,26 +855,25 @@ THREE.OrbitControls = function ( object, domElement ) {
 		}
 	
 		function onTouchStart( event ) {
-	
 			if ( scope.enabled === false ) return;
-	
+			
 			event.preventDefault();
-	
+			
 			switch ( event.touches.length ) {
+				
+				case 1:	// one-fingered touch: rotate enablePan
+				
+				if ( scope.enablePan === false ) return;
+				
 	
-				case 1:	// one-fingered touch: rotate
+				bbb( event );
 	
-					if ( scope.enableRotate === false ) return;
-	
-					handleTouchStartRotate( event );
-	
-					state = STATE.TOUCH_ROTATE;
-	
+					state = STATE.PAN;
 					break;
 	
 				case 2:	// two-fingered touch: dolly-pan
 	
-					if ( scope.enableZoom === false && scope.enablePan === false ) return;
+					if ( scope.enableZoom === false && scope.enableRotate === false ) return;
 	
 					handleTouchStartDollyPan( event );
 	
@@ -890,11 +905,11 @@ THREE.OrbitControls = function ( object, domElement ) {
 			switch ( event.touches.length ) {
 	
 				case 1: // one-fingered touch: rotate
-	
-					if ( scope.enableRotate === false ) return;
-					if ( state !== STATE.TOUCH_ROTATE ) return; // is this needed?
-	
-					handleTouchMoveRotate( event );
+				if ( scope.enablePan === false ) return;
+				
+				if ( state !== STATE.PAN ) return; // is this needed?
+					aaa(event)
+					// handleTouchMoveRotate( event );
 	
 					break;
 	
