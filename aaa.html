@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <!-- <meta name="viewport" content="width=device-width, initial-scale=1.0"> -->
+  <!-- <meta name="viewport" content="width=device-width, initial-scale=1.0"> -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>study</title>
+  <script src="./js/three.js"></script>
+  <script src="./js/SVGLoader.js"></script>
+  <script src="./js/CSS2DRenderer.js"></script>
+  <script src="./js/OrbitControls.js"></script>
+  <script src="./js/color.js"></script>
+  <script src="./js/sprite.js"></script>
+</head>
+  <style>
+    *{margin: 0;padding: 0;}
+    li{list-style: none;}
+    html,body{
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+    div{
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      /* background: red; */
+    }
+    .mmm{
+      width: 100px;
+      height: 100px;
+      position: fixed;
+      top: 100px;
+      left: 50px;
+      background: #fff;
+    }
+    li{
+      margin-top: 10px;
+      text-align: center;
+      line-height: 40px;
+      cursor: pointer;
+      border-radius: 10px; 
+      background: #ddd;
+    }
+    li:hover{
+      background: blue;
+      color: #fff;
+    }
+    .active3D{
+      opacity: 0.1;
+    }
+    .text3D{
+      width: 150px;
+      height: 40px;
+      line-height: 40px;
+      text-align: center;
+      color: black;
+      text-shadow:-1px 0 white,0 1px white,1px 0 white,0 -1px white;
+    }
+    .sign3D{
+      width: 20px;
+      height: 20px;
+    }
+  </style>
+<body>
+  <div id='wrap3d'></div>
+  <script>
+    window.onload = function(){
+      let camera, scene, ctrs, renderer, labelRenderer, ambient, spriteBox, shopBox//three
+      let isPhone = /Android|webOS|iPhone|iPod|BlackBerry/i.test(navigator.userAgent) //pc / phone
+      let timer, floor = 0, domIndex = 1, clickTime = 0, wrap3Dom = document.getElementById('wrap3d'), fontSize = isPhone ? "12px" : "16px" //public
+      let buildObj = {index: 0}, shopColorObj = {}, shopGroupObj = {}, textArrObj = {}, backgroundIdArr = [] // 建筑物
+      let textArr = ['nike','senma','雪中飞','花花公子男鞋','南极人','puma','李宁','安踏','new balance','妯娌老鸭粉丝汤','南极人','puma','李宁','安踏','阿里蛋糕店','nike','南极人','puma','李宁','安踏','new balance','好孩子',
+      'nike','senma','雪中飞','花花公子男鞋','雪中飞','花花公子男鞋','南极人','puma','李宁','安踏','阿里蛋糕店','nike','senma','雪中飞','花花公子男鞋','南极人','puma','李宁','安踏','new balance','妯娌老鸭粉丝汤','南极人','puma','李宁','安踏','阿里蛋糕店','nike','南极人','puma','李宁','安踏','new balance','好孩子',
+      'nike','senma','雪中飞','花花公子男鞋','雪中飞','花花公子男鞋','南极人','puma','李宁','安踏','阿里蛋糕店','nike','senma','雪中飞','花花公子男鞋','南极人','puma','李宁','安踏','new balance','妯娌老鸭粉丝汤','南极人','puma','李宁','安踏','阿里蛋糕店','nike','南极人','puma','李宁','安踏','new balance','好孩子',
+      'nike','senma','雪中飞','花花公子男鞋','雪中飞','花花公子男鞋','南极人','puma','李宁','安踏','阿里蛋糕店','puma','nike','senma','雪中飞','花花公子男鞋','南极人','puma','李宁','安踏','new balance','妯娌老鸭粉丝汤','日光影城']
+      
+      scene = new THREE.Scene()
+      scene.add(new THREE.AxesHelper( 200 ))//添加坐标系辅助线
+      camera = new THREE.PerspectiveCamera(25, window.innerWidth/window.innerHeight, 0.1, 5000)
+      scene.add(camera)
+
+      ctrs = new THREE.OrbitControls( camera )
+
+      ambient = new THREE.AmbientLight('#f2f2f2')
+      scene.add(ambient)
+
+
+      //读取svg
+      renderSvg('shop', './nihao11.svg')
+      // renderSvg('shop', './nihao5.svg')
+      renderSvg('shop', './nihao5.svg')
+      renderSvg('shop', './nihao5.svg')
+      renderSvg('shop', './nihao11.svg')
+      // renderSvg('shop', './nihao11.svg')
+      isPhone ? wrap3Dom.addEventListener('touchstart', shopClick) : wrap3Dom.addEventListener('click', shopClick)
+
+      renderer = new THREE.WebGLRenderer({antialias: true, precision:"highp"})
+      renderer.setSize(window.innerWidth, window.innerHeight)
+      renderer.setClearColor(0xffffff,1);
+      renderer.setPixelRatio(window.devicePixelRatio);
+      wrap3Dom.appendChild(renderer.domElement)
+      labelRenderer = new THREE.CSS2DRenderer();
+      labelRenderer.setSize( window.innerWidth, window.innerHeight );
+      labelRenderer.domElement.style.position = 'absolute';
+      labelRenderer.domElement.style.top = 0;
+      
+      wrap3Dom.appendChild( labelRenderer.domElement );
+      render()
+      setDefaultView()
+      function setDefaultView(){
+        var camAngle = 69
+        var camDir = [Math.cos(camAngle), Math.sin(camAngle)];
+        var camLen = 800;
+        var tiltAngle = 75.0 * Math.PI/180.0;
+        camera.position.set(camDir[1]*camLen, Math.sin(tiltAngle) * camLen, camDir[0]*camLen);//TODO: adjust the position automatically
+        camera.lookAt(scene.position);
+      }
+      function render(){
+        requestAnimationFrame(render)
+        ctrs.update()
+        renderer.render(scene, camera)
+        labelRenderer.render( scene, camera );
+      }
+
+      function renderSvg(type, url){
+        floor ++ 
+        let svgManager = new THREE.SVGLoader(type, floor)
+        svgManager.load(url, 
+          function ( data, index ) {
+            buildObj.index = index
+            let material
+            let paths = data.paths
+            let colorShopArr = []
+            let spriteGroup = new THREE.Group()//除了建筑物 group
+            let group = new THREE.Group()
+            buildObj[buildObj.index + 'shopGroup'] = new THREE.Group() //专门存放点击事件 shopGroup
+            if(type == 'shop'){
+              paths.forEach((el, b) => {
+                let latter = (el.shopId + '').charAt(0)
+                if(latter == 'b'){ //地板
+                  material = new THREE.MeshLambertMaterial({
+                    color: el.color,
+                    side: THREE.DoubleSide,
+                    opacity: index > 1 ? 0.2 : 0.8,
+                    transparent:true,
+                  });
+                  var shapes = el.toShapes( true, true );
+                  shapes.forEach((item,i)=>{
+                    if(i > 0){
+                      shapes[0].holes.push(item)
+                    }
+                  })
+                  var geometry = new THREE.ShapeBufferGeometry( shapes[0] );
+                  geometry = new THREE.ExtrudeGeometry( shapes[0],  { depth: 5,  curveSegments: 350,  bevelEnabled: false});
+                  var mesh = new THREE.Mesh( geometry, material );
+                  mesh.isBac = true
+                  buildObj[buildObj.index + 'shopGroup'].add(mesh)
+                }else if(latter == 'k'){ //shop
+                  colorShopArr.push(el.color)
+                  material = new THREE.MeshLambertMaterial( {
+                    color: el.color,
+                    side: THREE.DoubleSide,
+                    opacity: index > 1 ? 0.2 : 0.9,
+                    transparent:true,
+                  });
+                  var shapes = el.toShapes( true );
+                  var geometry = new THREE.ShapeBufferGeometry( shapes );
+                  geometry = new THREE.ExtrudeGeometry( shapes,  { depth: -10,  curveSegments: 350,  bevelEnabled: false});
+                  var mesh = new THREE.Mesh( geometry, material );
+                  mesh.isBac = false
+                  mesh.shopId = el.shopId
+                  buildObj[buildObj.index + 'shopGroup'].add( mesh )
+                }else {
+                  if(latter == 'f'){
+                    spriteGroup.add(createSpriteText(el.currentPath.currentPoint, '', isPhone))
+                    var iconDiv = document.createElement( 'div' );
+                    iconDiv.className = 'text3D sprite3D';
+                    iconDiv.classList.add('text3D' + buildObj.index)
+                    buildObj.index > 1 && iconDiv.classList.add('active3D')
+                    
+                    iconDiv.textContent = textArr[b];
+                    iconDiv.style.fontSize = fontSize
+                    var iconLabel = new THREE.CSS2DObject( iconDiv );
+                    iconLabel.position.set( el.currentPath.currentPoint.x, el.currentPath.currentPoint.y, 0 );
+                    spriteGroup.add(iconLabel)
+                  }else {
+                    spriteGroup.add(createSpriteText(el.currentPath.currentPoint, '', isPhone))
+                    var iconDiv = document.createElement( 'img' );
+                    iconDiv.className = 'sign3D sprite3D';
+                    iconDiv.classList.add("text3D"+ buildObj.index)
+                    buildObj.index > 1 && iconDiv.classList.add('active3D')
+                    switch (el.shopId.charAt(5)) {
+                      case 'z':
+                      iconDiv.src = './icon/666.png'
+                        break;
+                      case 'm':
+                      iconDiv.src = './icon/111.png'
+                        break;
+                      case 'a':
+                      iconDiv.src = './icon/444.png'
+                        break;
+                      case 'w':
+                      iconDiv.src = './icon/333.png'
+                        break;
+                      case 'd':
+                      iconDiv.src = './icon/222.png'
+                        break;
+                      case 'l':
+                      iconDiv.src = './icon/555.png'
+                        break;
+                      default:
+                        break;
+                    }
+                    // iconDiv.style.background = 'url('+'./icon/666.png'+')'
+                    var iconLabel = new THREE.CSS2DObject( iconDiv );
+                    iconLabel.position.set( el.currentPath.currentPoint.x, el.currentPath.currentPoint.y, 10 );
+                    spriteGroup.add(iconLabel)
+                  }
+                }
+                
+              });
+              shopColorObj[buildObj.index + 'colorArr'] = colorShopArr
+              shopBox = new THREE.Box3();
+              shopBox.setFromObject(buildObj[buildObj.index + 'shopGroup']);
+              buildObj[buildObj.index + 'shopGroup'].children.forEach(el=>{
+                el.position.x -= shopBox.getCenter(new THREE.Vector3()).x
+                el.position.y -= shopBox.getCenter(new THREE.Vector3()).y
+              })
+              buildObj[buildObj.index + 'shopGroup'].rotation.x = Math.PI/2;
+              buildObj[buildObj.index + 'shopGroup'].translateZ(150 *(buildObj.index-1)-15);
+              
+              spriteBox = new THREE.Box3();
+              spriteBox.setFromObject(spriteGroup);
+              spriteGroup.children.forEach(el=>{
+                el.position.x -= spriteBox.getCenter(new THREE.Vector3()).x
+                el.position.y -= spriteBox.getCenter(new THREE.Vector3()).y
+              })
+              spriteGroup.rotation.x = Math.PI/2;
+              spriteGroup.translateZ(150 *(buildObj.index-1)-30);
+              spriteGroup.translateY(-10);
+              scene.add( buildObj[buildObj.index + 'shopGroup'] );
+              scene.add(spriteGroup)
+            }
+            
+          },
+        )
+      }
+      function shopClick(){
+        let time = new Date()
+        if(time - clickTime > 400){
+          clickTime = new Date()
+          let divList = document.getElementsByClassName('sprite3D')
+          floor > 1 && Array.from(divList).forEach(el=>{
+            el.classList.add('active3D')
+          })
+          
+          let allList = [], groupArr = [], colorarr = []
+          let Sx = event.clientX, x; //鼠标单击位置横坐标
+          let Sy = event.clientY, y ; //鼠标单击位置纵坐标
+          if(isPhone) {
+            x = (event.touches[ 0 ].pageX /  window.innerWidth) * 2 -1;
+            y = -(event.touches[ 0 ].pageY / window.innerHeight) *2 +1;
+          } else {
+            x = (Sx / window.innerWidth) * 2 - 1; //标准设备横坐标
+            y = -(Sy / window.innerHeight) * 2 + 1; //标准设备纵坐标
+          }
+          
+          let standardVector = new THREE.Vector3(x, y, 0.5); //标准设备坐标
+          let worldVector = standardVector.unproject(camera);
+          let ray = worldVector.sub(camera.position).normalize()//射线投射方向单位向量(worldVector坐标减相机位置坐标)
+          let raycaster = new THREE.Raycaster(camera.position, ray)//创建射线投射器对象
+          
+          for(let i=0;i<floor;i++){
+            allList = allList.concat(buildObj[(i+1) + 'shopGroup'].children)
+            colorarr = colorarr.concat(shopColorObj[(i+1) + 'colorArr'])
+          }
+          groupArr = allList.filter((el)=> el.isBac == false )
+          colorarr.forEach((el, i)=>{
+            groupArr[i].material.color.set(el)
+            groupArr[i].material.opacity = '0.2'
+          })
+          let intersects = raycaster.intersectObjects(groupArr); //grouparr为需要被点击的目标体池集合
+          if(intersects.length > 0){
+            let obj = intersects[0].object
+            if(obj){
+              domIndex = obj.shopId.charAt(obj.shopId.length -1)
+              let actList = document.getElementsByClassName('text3D' + domIndex)
+              Array.from(actList).forEach(el=>{
+                el.classList.remove('active3D')
+              })
+            }
+            let arr = buildObj[domIndex + "shopGroup"].children  //1shopGroup
+            arr.forEach(el=>{
+              el.material.opacity = '0.9'
+            })
+            let rgbArr = new gradientColor('#99FF66','#990033', 20)
+            for(let b=0;b<20;b++){
+              timer = setTimeout(()=>{
+                obj.material.color.set(rgbArr[b])
+              }, 20*b)
+            }
+          }else {
+            let actList = document.getElementsByClassName('text3D' + domIndex)
+            Array.from(actList).forEach(el=>{
+              el.classList.remove('active3D')
+            })
+            let arr = buildObj[domIndex + "shopGroup"].children  //1shopGroup
+            arr.forEach(el=>{
+              el.material.opacity = '0.9'
+            })
+          }
+
+        }
+      }
+
+    }
+
+
+  </script>
+
+</body>
+</html>
