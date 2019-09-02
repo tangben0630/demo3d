@@ -15,6 +15,6 @@ function createSpriteText(p, con, isPhone) {
 	let textObj = new THREE.Sprite(material);
 	textObj.scale.set(10, 12, 30);
 	
-	textObj.position.set(p.x,p.y,10);
+	textObj.position.set(p.x,p.y,10)
 	return textObj;
 }
